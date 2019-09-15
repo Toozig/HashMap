@@ -233,7 +233,7 @@ public:
         for (size_t i = 0; i < keyNums; ++i)
         {
             hash = hashKey(keys[i]);
-            (*_map)[hash]->push_back(std::make_pair(keys[i], values[i]));
+            (*_map)[hash].push_back(std::make_pair(keys[i], values[i]));
         }
     }
 
@@ -511,6 +511,7 @@ public:
         {
             return (*_map)[hash][idx].second;
         }
+        throw std::exception(); //todo throw exception
     }
 
     bool erase(const keyT &key)
