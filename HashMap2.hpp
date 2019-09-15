@@ -187,24 +187,24 @@ class HashMap
     /**
  * The default value for lower bound
  */
-    constexpr static  double lowestBound = 0.25;
+    constexpr static  double DEFAULT_LOW_FACTOR = 0.25;
 
     /**
      * The default value for upper bound
      */
-    constexpr static double upperBound = 0.75;
+    constexpr static double DEFAULT_UP_FACOTR = 0.75;
 public:
 
     /**
      * Default Ctor
      * @param lowerBound
      */
-    explicit HashMap(double lowerBound = lowestBound, double upBound = upperBound):
+    explicit HashMap(double lowerBound = DEFAULT_LOW_FACTOR, double upBound = DEFAULT_UP_FACOTR):
             _lowerBound(lowerBound),
             _upperBound(upBound),
             _size(defaultSize),
-            _counter(0)
-    _map(new arrayWrapper<bucket>(mapSize))
+            _counter(0),
+    _map(new arrayWrapper<bucket>(mapSize(defaultSize)))
     {
         if(_lowerBound < 0)
         {
@@ -212,19 +212,29 @@ public:
         }
     }
 
-    explicit HashMap(const std::vector<keyT> & keys, const std::vector<valueT> & values)
-    _lowerBound(lowerBound),
-            _upperBound(upBound),
+    explicit HashMap(const std::vector<keyT> & keys, const std::vector<valueT> & values):
+    _lowerBound(DEFAULT_LOW_FACTOR),
+            _upperBound(DEFAULT_UP_FACOTR),
             _size(defaultSize),
             _counter(0)
     {
-        if(std::set(keys.begin(), keys.end()).size() != keys.size() || keys.size() != values.size())
+        size_t keyNums = keys.size();
+        if(std::set<keyT>(keys.begin(), keys.end()).size() != keyNums
+        || keys.size() != values.size())
         {
-            throw //todo
+            //todo throw
         }
-        long size = 0;
-
-        while ()
+        while( (_counter / mapSize(_size)) > _upperBound * mapSize(_size))
+        {
+         ++_size;
+        }
+        _map = new arrayWrapper<bucket>(mapSize(_size));
+        long hash;
+        for (int i = 0; i < keyNums; ++i)
+        {
+            hash = hashKey(keys[i]);
+            (*_map)[hash]->push_back(std::make_pair(keys[i], values[i]));
+        }
     }
 
     /**
@@ -422,7 +432,7 @@ public:
         ++_counter;
         std::pair<keyT, valueT> a = std::make_pair(key, value);
         (*_map)[hash].push_back(a);
-        if((_counter / mapSize(_size)) > upperBound * mapSize(_size)){ resize(enlarg); }
+        if((_counter / mapSize(_size)) > _upperBound * mapSize(_size)){ resize(enlarg); }
         return true;
     }
 
@@ -469,7 +479,7 @@ public:
         std::pair<keyT, valueT> pair = std::make_pair(key, valueT());
         (*_map)[hash].push_back(pair);
         ++_counter;
-        if((_counter / mapSize(_size)) > upperBound){ resize(enlarg); }
+        if((_counter / mapSize(_size)) > _upperBound){ resize(enlarg); }
         return (*--(*_map)[hash].end()).second;
     }
 
