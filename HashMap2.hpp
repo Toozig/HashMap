@@ -365,12 +365,24 @@ public:
     {
         return const_iterator(_map);
     }
+
+    const_iterator cbegin() const
+    {
+        return const_iterator(_map);
+    }
+
     const_iterator end() const
     {
         long outIdx = _map->getSize();
         long inIDx = (*_map)[outIdx - 1].size();
         return const_iterator(_map, outIdx, inIDx);
     }
+
+    const_iterator cend() const
+    {
+        return end();
+    }
+
     bool operator==(const HashMap & other) const
     {
         if(_counter != other._counter){ return false;}
@@ -447,7 +459,7 @@ public:
     /**
      * Checks if the map contains a key
      */
-    bool containKey(const keyT &key) const
+    bool containsKey(const keyT &key) const
     {
         long hash = hashKey(key);
         long size = (*_map)[hash].size();
@@ -489,6 +501,16 @@ public:
         ++_counter;
         if((_counter / mapSize(_size)) > _upperBound){ resize(enlarg); }
         return (*--(*_map)[hash].end()).second;
+    }
+
+    valueT& operator[](const keyT &key) const
+    {
+        long hash = hashKey(key);
+        long idx = getIdx(key, hash);
+        if(0 <= getIdx(key, hash) < (*_map)[hash].size())
+        {
+            return (*_map)[hash][idx].second;
+        }
     }
 
     bool erase(const keyT &key)
