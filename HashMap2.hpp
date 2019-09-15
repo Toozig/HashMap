@@ -230,7 +230,7 @@ public:
         }
         _map = new arrayWrapper<bucket>(mapSize(_size));
         long hash;
-        for (int i = 0; i < keyNums; ++i)
+        for (size_t i = 0; i < keyNums; ++i)
         {
             hash = hashKey(keys[i]);
             (*_map)[hash]->push_back(std::make_pair(keys[i], values[i]));
@@ -276,7 +276,7 @@ public:
         _map = nullptr;
     }
 
-    class mapIterator
+    class const_iterator
     {
     public:
 
@@ -289,25 +289,33 @@ public:
         /**
        * Typedefs for the array wrapper iterator
        */
-        typedef mapIterator self_type;
+        typedef const_iterator self_type;
         typedef std::pair<keyT, valueT> value_type;
         typedef std::pair<keyT, valueT>& reference;
         typedef std::pair<keyT, valueT>* pointer;
         typedef int difference_type;
         typedef std::forward_iterator_tag iterator_category;
-        explicit mapIterator(arrayWrapper<bucket> *arr, long outIdx = 0, long inIdx = 0)
+        explicit const_iterator(arrayWrapper<bucket> *arr, long outIdx = 0, long inIdx = 0)
                 : _arr(arr), _outIdx(outIdx), _inIdx(inIdx)
         {
             forward();
         };
 
-
+        /**
+         * prefix ++ operator
+         */
         self_type operator++()
         {
             if(_outIdx < _arr->getSize()) {++_inIdx; }
             forward();
             return *this;
         }
+
+        self_type operator++(int)  {
+            self_type i = *this;
+            if(_outIdx < _arr->getSize()) {++_inIdx; }
+            forward();
+            return i; }
 
         const value_type &operator*()
         {
@@ -321,7 +329,7 @@ public:
             return &(*_arr)[_outIdx].at(_inIdx);
         }
 
-        bool operator==(const mapIterator& rhs)
+        bool operator==(const const_iterator& rhs)
         {
 
             return _arr == rhs._arr  && _outIdx == rhs._outIdx && _inIdx == rhs._inIdx;
@@ -353,15 +361,15 @@ public:
         long _inIdx;
     };
 
-    mapIterator begin() const
+    const_iterator begin() const
     {
-        return mapIterator(_map);
+        return const_iterator(_map);
     }
-    mapIterator end() const
+    const_iterator end() const
     {
         long outIdx = _map->getSize();
         long inIDx = (*_map)[outIdx - 1].size();
-        return mapIterator(_map, outIdx, inIDx);
+        return const_iterator(_map, outIdx, inIDx);
     }
     bool operator==(const HashMap & other) const
     {
