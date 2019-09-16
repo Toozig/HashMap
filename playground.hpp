@@ -312,8 +312,8 @@ public:
         typedef std::pair<unsigned long, unsigned int>* pointer;
         typedef int difference_type;
         typedef std::forward_iterator_tag iterator_category;
-        explicit const_iterator(arrayWrapper<bucket> *arr, long outIdx = 0, long inIdx = 0)
-                : _arr(arr), _outIdx(outIdx), _inIdx(inIdx)
+        explicit const_iterator(HashMap map, long outIdx = 0, long inIdx = 0)
+                : _arr(map._map), _arrSize(pow(SIZE_BASE, map._size)), _outIdx(outIdx), _inIdx(inIdx)
         {
             forward();
         };
@@ -323,14 +323,14 @@ public:
          */
         self_type operator++()
         {
-            if(_outIdx < _arr->getSize()) {++_inIdx; }
+            if(_outIdx < _arrSize) {++_inIdx; }
             forward();
             return *this;
         }
 
         self_type operator++(int)  {
             self_type i = *this;
-            if(_outIdx < _arr->getSize()) {++_inIdx; }
+            if(_outIdx < _arrSize) {++_inIdx; }
             forward();
             return i; }
 
@@ -338,12 +338,12 @@ public:
         {
 
 
-            return (*_arr)[_outIdx].at(_inIdx);
+            return _arr[_outIdx].at(_inIdx);
         }
 
         const value_type *operator->()
         {
-            return &(*_arr)[_outIdx].at(_inIdx);
+            return &_arr[_outIdx].at(_inIdx);
         }
 
         bool operator==(const const_iterator& rhs)
@@ -359,40 +359,40 @@ public:
 
         void forward()
         {
-            if(_outIdx == _arr->getSize()) { return;} //todo double check if needed
-            if(_inIdx == (*_arr)[_outIdx].size())
+            if(_outIdx == _arrSize) { return;} //todo double check if needed
+            if(_inIdx == _arr[_outIdx].size())
             {
                 _inIdx = 0;
                 bool empty_bucket =  true;
-                while (_outIdx < _arr->getSize() && empty_bucket)
+                while (_outIdx < _arrSize && empty_bucket)
                 {
                     ++_outIdx;
-                    if(_outIdx < _arr->getSize()) {empty_bucket = (*_arr)[_outIdx].empty(); }
+                    if(_outIdx < _arrSize) {empty_bucket = _arr[_outIdx].empty(); }
 
                 }
             }
         }
-
-        arrayWrapper<bucket> * _arr;
+        size_t _arrSize;
+        bucket * _arr;
         long _outIdx;
         long _inIdx;
     };
 
     const_iterator begin() const
     {
-        return const_iterator(_map);
+        return const_iterator(*this);
     }
 
     const_iterator cbegin() const
     {
-        return const_iterator(_map);
+        return const_iterator(*this);
     }
 
     const_iterator end() const
     {
         long outIdx = mapSize(_size);
         long inIDx = _map[outIdx - 1].size();
-        return const_iterator(_map, outIdx, inIDx);
+        return const_iterator(*this, outIdx, inIDx);
     }
 
     const_iterator cend() const
