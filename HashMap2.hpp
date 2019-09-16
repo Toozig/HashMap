@@ -6,14 +6,17 @@
 #include <vector>
 #include <set>
 #include <cmath>
+#include <stdexcept>
+#include <cmath>
+
 #ifndef HASHMAP_HASHMAP2_HPP
 #define HASHMAP_HASHMAP2_HPP
 
 #endif //HASHMAP_HASHMAP2_HPP
-#define mapSize(size) pow(2, size)
 static const int emptyMap = -1;
 
-static const int defaultSize = 4;
+static const int DEFAULT_SIZE = 4;
+static const int SIZE_BASE = 2;
 enum reSizeFactors{shrink, enlarg};
 
 template <typename T>
@@ -202,33 +205,33 @@ public:
     explicit HashMap(double lowerBound = DEFAULT_LOW_FACTOR, double upBound = DEFAULT_UP_FACOTR):
             _lowerBound(lowerBound),
             _upperBound(upBound),
-            _size(defaultSize),
+            _size(DEFAULT_SIZE),
             _counter(0),
-    _map(new arrayWrapper<bucket>(mapSize(defaultSize)))
+    _map(new arrayWrapper<bucket>(mapSize( DEFAULT_SIZE)))
     {
         if(_lowerBound < 0)
         {
-            //todo throw exception
+            throw std::invalid_argument("Invalid load factor") ;
         }
     }
 
     explicit HashMap(const std::vector<keyT> & keys, const std::vector<valueT> & values):
     _lowerBound(DEFAULT_LOW_FACTOR),
             _upperBound(DEFAULT_UP_FACOTR),
-            _size(defaultSize),
+            _size(DEFAULT_SIZE),
             _counter(0)
     {
         size_t keyNums = keys.size();
         if(std::set<keyT>(keys.begin(), keys.end()).size() != keyNums
         || keys.size() != values.size())
         {
-            //todo throw
+            throw std::invalid_argument("Vector not in the same size") ;
         }
-        while( (_counter / mapSize(_size)) > _upperBound * mapSize(_size))
+        while((_counter / mapSize( _size)) > _upperBound * mapSize( _size))
         {
          ++_size;
         }
-        _map = new arrayWrapper<bucket>(mapSize(_size));
+        _map = new arrayWrapper<bucket>(mapSize( _size));
         long hash;
         for (size_t i = 0; i < keyNums; ++i)
         {
@@ -419,19 +422,19 @@ public:
     /**
      * returns the amount of keys inside the map
      */
-    int size(){ return _size; }
+    int size(){ return _counter; }
 
     /**
      * returns the current capacity of themap
      * @return
      */
-    int capacity(){ return mapSize(_size); }
+    int capacity(){ return mapSize( _size); }
 
     /**
      *
      * @return the lower load factor
      */
-    double getLoadFactor(){ return _lowerBound; }
+    double getLoadFactor(){ return _counter / mapSize(_size); }
 
     /**
      * returns true if the map is empty
@@ -450,9 +453,8 @@ public:
         //checks if the key already exist
         if(0 <= idx < (*_map)[hash].size()){ return false;}
         ++_counter;
-        std::pair<keyT, valueT> a = std::make_pair(key, value);
-        (*_map)[hash].push_back(a);
-        if((_counter / mapSize(_size)) > _upperBound * mapSize(_size)){ resize(enlarg); }
+        (*_map)[hash].push_back( std::make_pair(key, value));
+        if((_counter / mapSize( _size)) > _upperBound * mapSize( _size)){ resize(enlarg); }
         return true;
     }
 
@@ -499,7 +501,7 @@ public:
         std::pair<keyT, valueT> pair = std::make_pair(key, valueT());
         (*_map)[hash].push_back(pair);
         ++_counter;
-        if((_counter / mapSize(_size)) > _upperBound){ resize(enlarg); }
+        if((_counter / mapSize( _size)) > _upperBound){ resize(enlarg); }
         return (*--(*_map)[hash].end()).second;
     }
 
@@ -521,7 +523,7 @@ public:
         if(idx == (*_map)[hash].size() || !_counter) { return false; } //key is not in the map
         (*_map)[hash].erase((*_map)[hash].begin() + idx);
         --_counter;
-        if((_counter / mapSize(_size)) < _lowerBound){ resize(shrink); }
+        if((_counter /mapSize( _size)) < _lowerBound){ resize(shrink); }
         return true;
     }
 
@@ -536,7 +538,7 @@ public:
         {
             return (*_map)[hash][idx].second;
         }
-        else throw ;
+        else throw std::invalid_argument("The key does not exist") ;
 
     }
 
@@ -583,7 +585,7 @@ private:
     {
         if(!_size){ return; }
         _size = factor == enlarg ? ++_size : --_size;
-        auto * tmp = new arrayWrapper<bucket>(mapSize(_size));
+        auto * tmp = new arrayWrapper<bucket>(mapSize( _size));
         for (std::pair<keyT, valueT> pair: *this)
         {
             bucket list = (*tmp)[hashKey(pair.first)];
@@ -609,11 +611,21 @@ private:
     * returns the hash value of a given key
     */
     long hashKey(const keyT &key) const {
-        long hash;
-        hash = std::hash<keyT>{}(key);
-        return  hash &  ((long ) mapSize(_size) - 1);}
+        long hash ;
+        hash = std::hash<keyT>{}(key) ;
+        return  hash &  ((long ) mapSize( _size) - 1) ;
+    }
 
-    size_t _size;
+    /**
+     * returns the current map size
+     */
+    double mapSize(const int size) const
+    {
+        double result = pow(SIZE_BASE,size);
+        return result;
+    }
+
+    int _size;
     size_t _counter;
     double _lowerBound;
     double _upperBound;

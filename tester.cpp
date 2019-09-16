@@ -544,6 +544,7 @@ void testMove()
 
 int main()
 {
+    std::cout<< pow(2,5)<<  std::endl;
     testDefConstructor();
     testConstructorWithFactor();
     testConstructorVectors();
