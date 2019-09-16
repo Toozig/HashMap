@@ -60,7 +60,10 @@ public:
      * Default Ctor
      * @param size
      */
-    explicit arrayWrapper(long size = 0): _size(size), _data(new T[size]){}
+    explicit arrayWrapper(long size = 0): _size(size), _data(new T[size])
+    {
+
+    }
 
     /**
      * Copy Ctor
@@ -182,11 +185,11 @@ private:
 };
 
 
-template < typename keyT, typename valueT>
+template <  unsigned long,  unsigned int>
 class HashMap
 {
-    typedef __gnu_cxx::__normal_iterator<std::pair<keyT, valueT> *, std::vector<std::pair<keyT, valueT>>> iterator;
-    typedef std::vector<std::pair<keyT, valueT>> bucket;
+    typedef __gnu_cxx::__normal_iterator<std::pair<unsigned long, unsigned int> *, std::vector<std::pair<unsigned long, unsigned int>>> iterator;
+    typedef std::vector<std::pair<unsigned long, unsigned int>> bucket;
 
     /**
  * The default value for lower bound
@@ -208,7 +211,7 @@ public:
             _upperBound(upBound),
             _size(DEFAULT_SIZE),
             _counter(0),
-    _map(new arrayWrapper<bucket>(mapSize(DEFAULT_SIZE)))
+    _map(new bucket[mapSize(DEFAULT_SIZE)])
     {
         if(_lowerBound < 0)
         {
@@ -216,14 +219,14 @@ public:
         }
     }
 
-    explicit HashMap(const std::vector<keyT> & keys, const std::vector<valueT> & values):
+    explicit HashMap(const std::vector<unsigned long> & keys, const std::vector<unsigned int> & values):
     _lowerBound(DEFAULT_LOW_FACTOR),
             _upperBound(DEFAULT_UP_FACOTR),
             _size(DEFAULT_SIZE),
             _counter(0)
     {
         size_t keyNums = keys.size();
-        if(std::set<keyT>(keys.begin(), keys.end()).size() != keyNums
+        if(std::set<unsigned long>(keys.begin(), keys.end()).size() != keyNums
         || keys.size() != values.size())
         {
             throw std::invalid_argument("Vector not in the same size") ;
@@ -232,12 +235,12 @@ public:
         {
          ++_size;
         }
-        _map = new arrayWrapper<bucket>(mapSize( _size));
+        _map = new bucket[mapSize(DEFAULT_SIZE)];
         long hash;
         for (size_t i = 0; i < keyNums; ++i)
         {
             hash = hashKey(keys[i]);
-            (*_map)[hash].push_back(std::make_pair(keys[i], values[i]));
+            _map[hash].push_back(std::make_pair(keys[i], values[i]));
         }
     }
 
@@ -249,7 +252,10 @@ public:
             _upperBound(other._upperBound),
             _size(other._size),
             _counter(other._counter),
-            _map(new arrayWrapper<bucket>(*other._map)) {}
+            _map(new bucket[mapSize(other._size)])
+            {
+                std::copy(other._map, other._map + _size, _map);
+            }
 
     /**
      * Assigment Ctor
@@ -294,9 +300,9 @@ public:
        * Typedefs for the array wrapper iterator
        */
         typedef const_iterator self_type;
-        typedef std::pair<keyT, valueT> value_type;
-        typedef std::pair<keyT, valueT>& reference;
-        typedef std::pair<keyT, valueT>* pointer;
+        typedef std::pair<unsigned long, unsigned int> value_type;
+        typedef std::pair<unsigned long, unsigned int>& reference;
+        typedef std::pair<unsigned long, unsigned int>* pointer;
         typedef int difference_type;
         typedef std::forward_iterator_tag iterator_category;
         explicit const_iterator(arrayWrapper<bucket> *arr, long outIdx = 0, long inIdx = 0)
@@ -377,8 +383,8 @@ public:
 
     const_iterator end() const
     {
-        long outIdx = _map->getSize();
-        long inIDx = (*_map)[outIdx - 1].size();
+        long outIdx = mapSize(_size);
+        long inIDx = _map[outIdx - 1].size();
         return const_iterator(_map, outIdx, inIDx);
     }
 
@@ -394,7 +400,7 @@ public:
         {
             long hash = hashKey(pair.first);
             long idx = getIdx(pair, hash);
-            if(idx == (*_map)[hash].size() || idx == emptyMap) { return  false;}
+            if(idx == _map[hash].size() || idx == emptyMap) { return  false;}
         }
         return true;
     }
@@ -403,22 +409,6 @@ public:
         return  !(*this == other);
     }
 
-    /**
-//     * Ctor that makes map from 2 vectors of keysand values
-//     * @param keys vector of keys
-//     * @param values vector of values
-//     */
-    HashMap(const std::vector<unsigned  long> & keys, const std::vector<valueT> & values)
-    {
-        // make sure same _size and all the keys are different
-        if(keys.size() != values.size() && std::set<keyT>(keys.begin(), keys.end()).size() != keys.size())
-
-        {
-            //todo  throw exception
-        }
-        //todo (need insert and all of that shit)
-
-    };//todo this
 
     /**
      * returns the amount of keys inside the map
@@ -447,14 +437,14 @@ public:
      * if the key exist, it replace it's value
      * @return true if insert correctly
      */
-    bool insert(const keyT &key, const valueT &value)
+    bool insert(const unsigned long &key, const unsigned int &value)
     {
         long hash = hashKey(key);
         long idx = getIdx(key, hash);
         //checks if the key already exist
-        if(0 <= idx < (*_map)[hash].size()){ return false;}
+        if(0 <= idx < _map[hash].size()){ return false;}
         ++_counter;
-        (*_map)[hash].push_back( std::make_pair(key, value));
+        _map[hash].push_back( std::make_pair(key, value));
 
         if( getLoadFactor() > _upperBound){ resize(enlarg); }
         return true;
@@ -463,10 +453,10 @@ public:
     /**
      * Checks if the map contains a key
      */
-    bool containsKey(const keyT &key) const
+    bool containsKey(const unsigned long &key) const
     {
         long hash = hashKey(key);
-        long size = (*_map)[hash].size();
+        long size = _map[hash].size();
         long idx =  getIdx(key, hash);
         return 0 <= idx && idx < size;
     }
@@ -476,12 +466,12 @@ public:
      * @param key the key which the buckets belongs to
      * @return the bucket size of a given key
      */
-    int bucketSize(const keyT &key) const
+    int bucketSize(const unsigned long &key) const
     {
 
         long hash = hashKey(key);
         long idx = getIdx(key, hash);
-        return idx == emptyMap || idx == (*_map)[hash].size() ? 0 :(int) (*_map)[hash].size();
+        return idx == emptyMap || idx == _map[hash].size() ? 0 :(int) _map[hash].size();
     }
 
     /**
@@ -492,38 +482,38 @@ public:
         *this = HashMap();
     }
 
-    valueT& operator[](const keyT &key)
+    unsigned int& operator[](const unsigned long &key)
     {
         long hash = hashKey(key);
         long idx = getIdx(key, hash);
-        if(0 <= getIdx(key, hash) < (*_map)[hash].size())
+        if(0 <= getIdx(key, hash) < _map[hash].size())
         {
-            return (*_map)[hash][idx].second;
+            return _map[hash][idx].second;
         }
-        std::pair<keyT, valueT> pair = std::make_pair(key, valueT());
-        (*_map)[hash].push_back(pair);
+        std::pair<unsigned long, unsigned int> pair = std::make_pair(key, (unsigned int) int()); //todo change it
+        _map[hash].push_back(pair);
         ++_counter;
         if(getLoadFactor() > _upperBound){ resize(enlarg); }
-        return (*--(*_map)[hash].end()).second;
+        return (*--_map[hash].end()).second;
     }
 
-    valueT& operator[](const keyT &key) const
+    unsigned int& operator[](const unsigned long &key) const
     {
         long hash = hashKey(key);
         long idx = getIdx(key, hash);
-        if(0 <= getIdx(key, hash) < (*_map)[hash].size())
+        if(0 <= getIdx(key, hash) < _map[hash].size())
         {
-            return (*_map)[hash][idx].second;
+            return _map[hash][idx].second;
         }
         throw std::exception(); //todo throw exception
     }
 
-    bool erase(const keyT &key)
+    bool erase(const unsigned long &key)
     {
         long hash = hashKey(key);
         long idx = getIdx(key, hash);
-        if(idx == (*_map)[hash].size() || !_counter) { return false; } //key is not in the map
-        (*_map)[hash].erase((*_map)[hash].begin() + idx);
+        if(idx == _map[hash].size() || !_counter) { return false; } //key is not in the map
+        _map[hash].erase(_map[hash].begin() + idx);
         --_counter;
         if(getLoadFactor() < _lowerBound){ resize(shrink); }
         return true;
@@ -532,13 +522,13 @@ public:
     /**
      * returns the value of a given key
      */
-    valueT& at(const keyT &key) const
+    unsigned int& at(const unsigned long &key) const
     {
         long hash = hashKey(key);
         long idx = getIdx(key, hash);
-        if(0 <= getIdx(key, hash) < (*_map)[hash].size())
+        if(0 <= getIdx(key, hash) < _map[hash].size())
         {
-            return (*_map)[hash][idx].second;
+            return _map[hash][idx].second;
         }
         else throw std::invalid_argument("The key does not exist") ;
 
@@ -551,10 +541,10 @@ private:
      * @param pair
      * @return  the idx, -1 if bucket is empty
      */
-    long getIdx(const std::pair<keyT, valueT> &pair, const long hash) const
+    long getIdx(const std::pair<unsigned long, unsigned int> &pair, const long hash) const
     {
         if(!_counter){ return emptyMap;}
-        bucket list =  (*_map)[hash];
+        bucket list =  _map[hash];
         iterator item = (std::find(list.begin(), list.end(), pair));
         return std::distance(list.begin(), (std::find(list.begin(), list.end(), pair)));
     }
@@ -564,12 +554,12 @@ private:
      * @param pair
      * @return  the idx, -1 if bucket is empty
      */
-    long getIdx(const keyT &key, const long hash) const
+    long getIdx(const unsigned long &key, const long hash) const
     {
         if(!_counter){ return emptyMap;}
-        bucket list =  (*_map)[hash];
-        std::pair<keyT, valueT> result;
-        for(std::pair<keyT, valueT> pair : list)
+        bucket list =  _map[hash];
+        std::pair<unsigned long, unsigned int> result;
+        for(std::pair<unsigned long, unsigned int> pair : list)
         {
             if(pair.first == key)
             {
@@ -588,8 +578,7 @@ private:
         if(!_size){ return; }
         _size = factor == enlarg ? ++_size : --_size;
         auto* tmp = new arrayWrapper<bucket>(mapSize( _size));
-
-        for (std::pair<keyT, valueT> pair: *this)
+        for (std::pair<unsigned long, unsigned int> pair: *this)
         {
             bucket list = (*tmp)[hashKey(pair.first)];
             list.push_back(pair);
@@ -597,7 +586,7 @@ private:
         delete _map;
         _map = tmp;
         auto p =tmp->operator[](0);
-        for (std::pair<keyT, valueT> pair: *this)
+        for (std::pair<unsigned long, unsigned int> pair: *this)
         {
             int a =4;
         }
@@ -619,16 +608,16 @@ private:
     /**
     * returns the hash value of a given key
     */
-    long hashKey(const keyT &key) const {
+    long hashKey(const unsigned long &key) const {
         long hash ;
-        hash = std::hash<keyT>{}(key) ;
+        hash = std::hash<unsigned long>{}(key) ;
         return  hash &  ((long ) mapSize( _size) - 1) ;
     }
 
     /**
      * returns the current map size
      */
-    double mapSize(const int size) const
+    int mapSize(const int size) const
     {
         double result = pow(SIZE_BASE,size);
         return result;
@@ -638,7 +627,7 @@ private:
     size_t _counter;
     double _lowerBound;
     double _upperBound;
-    arrayWrapper<bucket> *_map;
+    bucket*_map;
 };
 
 
