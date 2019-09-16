@@ -8,6 +8,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <cmath>
+#include <iostream>
 
 #ifndef HASHMAP_HASHMAP2_HPP
 #define HASHMAP_HASHMAP2_HPP
@@ -207,7 +208,7 @@ public:
             _upperBound(upBound),
             _size(DEFAULT_SIZE),
             _counter(0),
-    _map(new arrayWrapper<bucket>(mapSize( DEFAULT_SIZE)))
+    _map(new arrayWrapper<bucket>(mapSize(DEFAULT_SIZE)))
     {
         if(_lowerBound < 0)
         {
@@ -454,7 +455,8 @@ public:
         if(0 <= idx < (*_map)[hash].size()){ return false;}
         ++_counter;
         (*_map)[hash].push_back( std::make_pair(key, value));
-        if((_counter / mapSize( _size)) > _upperBound * mapSize( _size)){ resize(enlarg); }
+
+        if( getLoadFactor() > _upperBound){ resize(enlarg); }
         return true;
     }
 
@@ -501,7 +503,7 @@ public:
         std::pair<keyT, valueT> pair = std::make_pair(key, valueT());
         (*_map)[hash].push_back(pair);
         ++_counter;
-        if((_counter / mapSize( _size)) > _upperBound){ resize(enlarg); }
+        if(getLoadFactor() > _upperBound){ resize(enlarg); }
         return (*--(*_map)[hash].end()).second;
     }
 
@@ -523,7 +525,7 @@ public:
         if(idx == (*_map)[hash].size() || !_counter) { return false; } //key is not in the map
         (*_map)[hash].erase((*_map)[hash].begin() + idx);
         --_counter;
-        if((_counter /mapSize( _size)) < _lowerBound){ resize(shrink); }
+        if(getLoadFactor() < _lowerBound){ resize(shrink); }
         return true;
     }
 
@@ -585,14 +587,21 @@ private:
     {
         if(!_size){ return; }
         _size = factor == enlarg ? ++_size : --_size;
-        auto * tmp = new arrayWrapper<bucket>(mapSize( _size));
+        auto* tmp = new arrayWrapper<bucket>(mapSize( _size));
+
         for (std::pair<keyT, valueT> pair: *this)
         {
             bucket list = (*tmp)[hashKey(pair.first)];
-            list.emplace_back(pair);
+            list.push_back(pair);
         }
         delete _map;
         _map = tmp;
+        auto p =tmp->operator[](0);
+        for (std::pair<keyT, valueT> pair: *this)
+        {
+            int a =4;
+        }
+
     }
 
     /**
