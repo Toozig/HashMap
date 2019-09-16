@@ -1,4 +1,11 @@
 //
+// Created by toozi on 9/16/2019.
+//
+
+
+
+
+//
 // Created by toozig on 9/15/19.
 //
 
@@ -10,8 +17,8 @@
 #include <cmath>
 #include <iostream>
 
-#ifndef HASHMAP_HASHMAP2_HPP
-#define HASHMAP_HASHMAP2_HPP
+#ifndef UNTITLED3_PLAYGROUND_HPP
+#define UNTITLED3_PLAYGROUND_HPP
 
 #endif //HASHMAP_HASHMAP2_HPP
 static const int emptyMap = -1;
@@ -185,7 +192,7 @@ private:
 };
 
 
-template <typename keyT, typename valueT>
+template <typename keyT, typename  valueT>
 class HashMap
 {
     typedef __gnu_cxx::__normal_iterator<std::pair<keyT, valueT> *, std::vector<std::pair<keyT, valueT>>> iterator;
@@ -211,7 +218,7 @@ public:
             _upperBound(upBound),
             _size(DEFAULT_SIZE),
             _counter(0),
-    _map(new bucket[mapSize(DEFAULT_SIZE)])
+            _map(new bucket[mapSize(DEFAULT_SIZE)])
     {
         if(_lowerBound < 0)
         {
@@ -220,20 +227,20 @@ public:
     }
 
     explicit HashMap(const std::vector<keyT> & keys, const std::vector<valueT> & values):
-    _lowerBound(DEFAULT_LOW_FACTOR),
+            _lowerBound(DEFAULT_LOW_FACTOR),
             _upperBound(DEFAULT_UP_FACOTR),
             _size(DEFAULT_SIZE),
             _counter(0)
     {
         size_t keyNums = keys.size();
         if(std::set<keyT>(keys.begin(), keys.end()).size() != keyNums
-        || keys.size() != values.size())
+           || keys.size() != values.size())
         {
             throw std::invalid_argument("Vector not in the same size") ;
         }
         while((_counter / mapSize( _size)) > _upperBound * mapSize( _size))
         {
-         ++_size;
+            ++_size;
         }
         _map = new bucket[mapSize(DEFAULT_SIZE)];
         long hash;
@@ -253,9 +260,9 @@ public:
             _size(other._size),
             _counter(other._counter),
             _map(new bucket[mapSize(other._size)])
-            {
-                std::copy(other._map, other._map + _size, _map);
-            }
+    {
+        std::copy(other._map, other._map + _size, _map);
+    }
 
     /**
      * Assigment Ctor
@@ -305,8 +312,8 @@ public:
         typedef std::pair<keyT, valueT>* pointer;
         typedef int difference_type;
         typedef std::forward_iterator_tag iterator_category;
-        explicit const_iterator(arrayWrapper<bucket> *arr, long outIdx = 0, long inIdx = 0)
-                : _arr(arr), _outIdx(outIdx), _inIdx(inIdx)
+        explicit const_iterator(HashMap map, long outIdx = 0, long inIdx = 0)
+                : _arr(map._map), _arrSize(pow(SIZE_BASE, map._size)), _outIdx(outIdx), _inIdx(inIdx)
         {
             forward();
         };
@@ -316,14 +323,14 @@ public:
          */
         self_type operator++()
         {
-            if(_outIdx < _arr->getSize()) {++_inIdx; }
+            if(_outIdx < _arrSize) {++_inIdx; }
             forward();
             return *this;
         }
 
         self_type operator++(int)  {
             self_type i = *this;
-            if(_outIdx < _arr->getSize()) {++_inIdx; }
+            if(_outIdx < _arrSize) {++_inIdx; }
             forward();
             return i; }
 
@@ -331,12 +338,12 @@ public:
         {
 
 
-            return (*_arr)[_outIdx].at(_inIdx);
+            return _arr[_outIdx].at(_inIdx);
         }
 
         const value_type *operator->()
         {
-            return &(*_arr)[_outIdx].at(_inIdx);
+            return &_arr[_outIdx].at(_inIdx);
         }
 
         bool operator==(const const_iterator& rhs)
@@ -352,40 +359,40 @@ public:
 
         void forward()
         {
-            if(_outIdx == _arr->getSize()) { return;} //todo double check if needed
-            if(_inIdx == (*_arr)[_outIdx].size())
+            if(_outIdx == _arrSize) { return;} //todo double check if needed
+            if(_inIdx == _arr[_outIdx].size())
             {
                 _inIdx = 0;
                 bool empty_bucket =  true;
-                while (_outIdx < _arr->getSize() && empty_bucket)
+                while (_outIdx < _arrSize && empty_bucket)
                 {
                     ++_outIdx;
-                    if(_outIdx < _arr->getSize()) {empty_bucket = (*_arr)[_outIdx].empty(); }
+                    if(_outIdx < _arrSize) {empty_bucket = _arr[_outIdx].empty(); }
 
                 }
             }
         }
-
-        arrayWrapper<bucket> * _arr;
+        size_t _arrSize;
+        bucket * _arr;
         long _outIdx;
         long _inIdx;
     };
 
     const_iterator begin() const
     {
-        return const_iterator(_map);
+        return const_iterator(*this);
     }
 
     const_iterator cbegin() const
     {
-        return const_iterator(_map);
+        return const_iterator(*this);
     }
 
     const_iterator end() const
     {
         long outIdx = mapSize(_size);
         long inIDx = _map[outIdx - 1].size();
-        return const_iterator(_map, outIdx, inIDx);
+        return const_iterator(*this, outIdx, inIDx);
     }
 
     const_iterator cend() const
@@ -490,7 +497,7 @@ public:
         {
             return _map[hash][idx].second;
         }
-        std::pair<keyT, valueT> pair = std::make_pair(key, valueT()); //todo change it
+        std::pair<keyT, valueT> pair = std::make_pair(key, (valueT) int()); //todo change it
         _map[hash].push_back(pair);
         ++_counter;
         if(getLoadFactor() > _upperBound){ resize(enlarg); }
@@ -577,13 +584,13 @@ private:
     {
         if(!_size){ return; }
         _size = factor == enlarg ? ++_size : --_size;
-        auto* tmp = new arrayWrapper<bucket>(mapSize( _size));
+        auto* tmp = new bucket[mapSize(_size)];
         for (std::pair<keyT, valueT> pair: *this)
         {
-            bucket list = (*tmp)[hashKey(pair.first)];
+            bucket list = tmp[hashKey(pair.first)];
             list.push_back(pair);
         }
-        delete _map;
+        delete[] _map;
         _map = tmp;
         auto p =tmp->operator[](0);
         for (std::pair<keyT, valueT> pair: *this)
@@ -629,7 +636,6 @@ private:
     double _upperBound;
     bucket*_map;
 };
-
 
 
 
