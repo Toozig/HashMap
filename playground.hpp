@@ -17,14 +17,13 @@
 #include <cmath>
 #include <iostream>
 
-#ifndef UNTITLED3_PLAYGROUND_HPP
-#define UNTITLED3_PLAYGROUND_HPP
 
-#endif //HASHMAP_HASHMAP2_HPP
+
 static const int NOT_FOUND = -1;
 
 static const int DEFAULT_SIZE = 4;
 static const int SIZE_BASE = 2;
+static const int DEFAULT = -1;
 enum reSizeFactors{shrink, enlarg};
 
 
@@ -56,9 +55,9 @@ public:
             _counter(0),
             _map(new bucket*[ (int) mapSize(DEFAULT_SIZE)])
     {
-        if(_lowerBound < 0)
+        if(_lowerBound > _upperBound || _upperBound < 0 || _upperBound > 1 || _lowerBound > 1 || _lowerBound < 0 )
         {
-            throw std::invalid_argument("Invalid load factor") ;
+            throw std::invalid_argument("Invalid parameters") ;
         }
         for (int i = 0; i < capacity(); ++i)
         {
@@ -73,16 +72,20 @@ public:
             _counter(0)
     {
         size_t keyNums = keys.size();
-        if(std::set<unsigned long>(keys.begin(), keys.end()).size() != keyNums
-           || keys.size() != values.size())
+        if(keys.size() != values.size())
         {
             throw std::invalid_argument("Vector not in the same size") ;
         }
-        while((_counter / mapSize( _size)) > _upperBound * mapSize( _size))
+
+        while((keyNums / mapSize( _size)) > _upperBound)
         {
             ++_size;
         }
-        _map = new bucket*[(int) mapSize(DEFAULT_SIZE)];
+        _map = new bucket*[(int) mapSize(_size)];
+        for (int j = 0; j < mapSize(_size); ++j)
+        {
+            _map[j] = nullptr;
+        }
         long hash;
         for (size_t i = 0; i < keyNums; ++i)
         {
@@ -90,9 +93,19 @@ public:
             if(_map[hash] == nullptr)
             {
                 _map[hash] = new bucket() ;
-            _map[hash]->push_back(std::make_pair(keys[i], values[i]));
+                _map[hash]->push_back(std::make_pair(keys[i], values[i]));
+                ++_counter;
             } else{
-                _map[hash] = nullptr;
+                int idx = getIdx(keys[i], hash);
+                if(idx == NOT_FOUND)
+                {
+                    _map[hash]->push_back(std::make_pair(keys[i], values[i]));
+                    ++_counter;
+                }
+                else
+                {
+                    this[keys[i]] = values[i];
+                }
             }
         }
     }
@@ -202,7 +215,7 @@ public:
         void forward()
         {
             if(_outIdx == _arrSize) { return;} //todo double check if needed
-            if(_inIdx == _arr[_outIdx]->size())
+            if(_arr[_outIdx] == nullptr || _inIdx == _arr[_outIdx]->size())
             {
                 _inIdx = 0;
                 bool empty_bucket =  true;
@@ -234,8 +247,7 @@ public:
     const_iterator end() const
     {
         long outIdx = mapSize(_size);
-        long inIDx = _map[outIdx - 1]->size();
-        return const_iterator(*this, outIdx, inIDx);
+        return const_iterator(*this, outIdx);
     }
 
     const_iterator cend() const
@@ -294,6 +306,7 @@ public:
         //checks if the key already exist
         if(0 <= idx ){ return false;}
         ++_counter;
+        if( _map[hash] == nullptr) { _map[hash] = new bucket; }
         _map[hash]->push_back( std::make_pair(key, value));
         if( getLoadFactor() > _upperBound){ resize(enlarg); }
         return true;
@@ -431,18 +444,19 @@ private:
     {
         if(!_size){ return; }
         int addition = factor == enlarg ? 1 : -1;
-        auto** tmp = new bucket*[ (int) mapSize(_size + addition)] ;
-        for (int j = 0; j < mapSize(_size + addition); ++j)
+        auto** tmp = new bucket*[ (int) mapSize(_size + factor)] ;
+        for (int j = 0; j < mapSize(_size + factor); ++j)
         {
             tmp[j] = nullptr;
         }
         for (std::pair<unsigned long, char> pair: *this)
         {
-            int hash = hashKey(pair.first);
+            int hash = hashKey(pair.first, _size + factor);
             if(tmp[hash] == nullptr) { tmp[hash] = new bucket;}
+            std::cout << pair.first << ' ';
             tmp[hash]->push_back(pair);
         }
-        for (int i = 0; i <mapSize(_size) ; ++i)
+        for (int i = 0; i <mapSize(_size - factor) ; ++i)
         {
             delete _map[i];
             _map[i] = nullptr;
@@ -467,10 +481,11 @@ private:
     /**
     * returns the hash value of a given key
     */
-    long hashKey(const unsigned long &key) const {
+    long hashKey(const unsigned long &key, int size = DEFAULT) const {
+        size = size == DEFAULT? _size : size;
         long hash ;
         hash = std::hash<unsigned long>{}(key) ;
-        return  hash &  ((long ) mapSize( _size) - 1) ;
+        return  hash &  ((long ) mapSize( size) - 1) ;
     }
 
     /**

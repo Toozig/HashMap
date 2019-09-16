@@ -17,10 +17,8 @@
 #include <cmath>
 #include <iostream>
 
-#ifndef UNTITLED3_PLAYGROUND_HPP
-#define UNTITLED3_PLAYGROUND_HPP
 
-#endif //HASHMAP_HASHMAP2_HPP
+
 static const int NOT_FOUND = -1;
 
 static const int DEFAULT_SIZE = 4;
@@ -57,7 +55,7 @@ public:
             _counter(0),
             _map(new bucket*[ (int) mapSize(DEFAULT_SIZE)])
     {
-        if(_lowerBound > _upperBound || _upperBound < 0 || _upperBound > 1 || _lowerBound < 0 )
+        if(_lowerBound > _upperBound || _upperBound < 0 || _upperBound > 1 || _lowerBound > 1 || _lowerBound < 0 )
         {
             throw std::invalid_argument("Invalid parameters") ;
         }
@@ -74,16 +72,20 @@ public:
             _counter(0)
     {
         size_t keyNums = keys.size();
-        if(std::set<keyT>(keys.begin(), keys.end()).size() != keyNums
-           || keys.size() != values.size())
+        if(keys.size() != values.size())
         {
             throw std::invalid_argument("Vector not in the same size") ;
         }
-        while((_counter / mapSize( _size)) > _upperBound * mapSize( _size))
+
+        while((keyNums / mapSize( _size)) > _upperBound)
         {
             ++_size;
         }
-        _map = new bucket*[(int) mapSize(DEFAULT_SIZE)];
+        _map = new bucket*[(int) mapSize(_size)];
+        for (int j = 0; j < mapSize(_size); ++j)
+        {
+            _map[j] = nullptr;
+        }
         long hash;
         for (size_t i = 0; i < keyNums; ++i)
         {
@@ -92,8 +94,15 @@ public:
             {
                 _map[hash] = new bucket() ;
                 _map[hash]->push_back(std::make_pair(keys[i], values[i]));
+                ++_counter;
             } else{
-                _map[hash] = nullptr;
+                int idx = getIdx(keys[i], hash);
+                if(idx == NOT_FOUND)
+                {
+                    _map[hash]->push_back(std::make_pair(keys[i], values[i]));
+                    ++_counter;
+                }
+                else{_map[hash]->at(idx).second = values[i];}
             }
         }
     }
@@ -108,7 +117,8 @@ public:
             _counter(other._counter),
             _map(nullptr)
     {
-        *this = other;
+        HashMap h = other;
+        swap(*this, h);
     }
 
     /**
@@ -334,7 +344,7 @@ public:
     {
         long hash = hashKey(key);
         long idx = getIdx(key, hash);
-        if(0 <= getIdx(key, hash) < _map[hash]->size())
+        if(idx != NOT_FOUND)
         {
             return _map[hash]->at(idx).second;
         }
